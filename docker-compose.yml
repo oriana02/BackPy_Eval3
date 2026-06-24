@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  product-db:
+    image: mysql:8.0
+    container_name: product-service-db
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: products_db
+    ports:
+      - "3307:3306" # Expuesto en el 3307 en tu PC para evitar conflictos
+    volumes:
+      - product_db_data:/var/lib/mysql
+    networks:
+      - product-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  product-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: product-service-api
+    ports:
+      - "8082:8082"
+    environment:
+      - DB_HOST=product-db
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=rootpassword
+      - DB_NAME=products_db
+      - PORT=8082
+    networks:
+      - product-net
+    depends_on:
+      product-db:
+        condition: service_healthy
+
+networks:
+  product-net:
+    driver: bridge
+
+volumes:
+  product_db_data:
